@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ركّز — مؤقت بومودورو للمذاكرة الذكية</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Changa:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#07181c; --bg1:#0a2227; --panel:#0f2f35; --panel2:#123439;
+  --ink:#eef6f1; --muted:#9db9b4; --line:rgba(255,255,255,.09);
+  --amber:#ffb703; --mint:#5fd6a4; --coral:#ff8b71; --sky:#7cc4ff;
+  --accent:var(--amber); --accent-glow:rgba(255,183,3,.35);
+  --font-body:'IBM Plex Sans Arabic',sans-serif;
+  --font-disp:'Amiri',serif;
+  --font-num:'Changa',sans-serif;
+}
+body[data-mode="short"]{ --accent:var(--mint); --accent-glow:rgba(95,214,164,.35); }
+body[data-mode="long"]{ --accent:var(--coral); --accent-glow:rgba(255,139,113,.35); }
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-body); color:var(--ink); min-height:100vh; overflow-x:hidden;
+  background:
+    radial-gradient(1100px 700px at 85% -10%, #12404600, transparent),
+    linear-gradient(160deg, var(--bg0), var(--bg1) 60%, #0c2a2e);
+}
+/* ===== طبقات الخلفية الحيّة ===== */
+.bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;transition:background 1s;
+  background:radial-gradient(720px 520px at 72% 12%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);}
+.bg-dots{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.06) 1px, transparent 1.6px);
+  background-size:28px 28px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 20%, #000 20%, transparent 80%);
+          mask-image:radial-gradient(ellipse at 50% 20%, #000 20%, transparent 80%);}
+.orbit{position:fixed;border-radius:50%;z-index:0;pointer-events:none;
+  border:1.5px dashed color-mix(in srgb, var(--accent) 18%, transparent); transition:border-color .8s;}
+.o1{width:88vmax;height:88vmax;top:-46vmax;inset-inline-start:-32vmax;animation:spin 190s linear infinite}
+.o2{width:58vmax;height:58vmax;bottom:-32vmax;inset-inline-end:-20vmax;animation:spin 150s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+body::after{content:'';position:fixed;inset:0;z-index:999;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+main,header,footer{position:relative;z-index:2}
+section{scroll-margin-top:96px}
+
+/* ===== الشريط العلوي ===== */
+.topbar{position:sticky;top:0;display:flex;align-items:center;gap:1.5rem;
+  padding:.8rem clamp(1rem,4vw,3rem);z-index:50;
+  background:rgba(7,24,28,.72);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+.brand{display:flex;align-items:center;gap:.7rem;text-decoration:none;color:var(--ink)}
+.brand svg{width:38px;height:38px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));transition:transform .4s}
+.brand:hover svg{transform:rotate(-10deg) scale(1.08)}
+.brand-name{font-family:var(--font-disp);font-weight:700;font-size:1.5rem;line-height:1}
+.brand-name small{display:block;font-family:var(--font-body);font-weight:300;font-size:.62rem;color:var(--muted);margin-top:.2rem}
+.topbar nav{display:flex;gap:1.4rem;margin-inline-start:auto}
+.topbar nav a{color:var(--muted);text-decoration:none;font-size:.9rem;font-weight:500;position:relative;padding:.3rem 0;transition:color .3s}
+.topbar nav a::after{content:'';position:absolute;bottom:0;inset-inline-start:0;width:100%;height:2px;background:var(--accent);border-radius:2px;transform:scaleX(0);transform-origin:right;transition:transform .35s}
+.topbar nav a:hover{color:var(--ink)}
+.topbar nav a:hover::after{transform:scaleX(1)}
+.top-actions{display:flex;align-items:center;gap:.7rem}
+.streak-chip{font-size:.8rem;border:1px solid var(--line);border-radius:999px;padding:.35em .9em;background:rgba(255,255,255,.03)}
+.streak-chip b{font-family:var(--font-num);color:var(--accent)}
+.icon-btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1rem;transition:.3s}
+.icon-btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+
+/* ===== منصّة المؤقّت ===== */
+.console{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(1.5rem,4vw,3.5rem);align-items:center;
+  padding:clamp(2rem,5vh,4rem) clamp(1rem,5vw,4rem);min-height:calc(100vh - 70px);max-width:1250px;margin-inline:auto}
+.timer-col{display:flex;flex-direction:column;align-items:center;gap:1.3rem}
+.status-line{display:flex;align-items:center;gap:.6rem;font-family:var(--font-num);font-weight:600;color:var(--accent);font-size:1.05rem;transition:color .5s}
+.pulse-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--accent-glow)}
+body.running .pulse-dot{animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--accent-glow)}100%{box-shadow:0 0 0 16px transparent}}
+
+.tabs-row{display:flex;align-items:center;gap:.6rem}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px}
+.tab{font-family:var(--font-num);font-weight:600;font-size:.9rem;color:var(--muted);background:transparent;border:none;
+  padding:.5em 1.15em;border-radius:999px;cursor:pointer;transition:.35s;display:flex;gap:.4em;align-items:baseline}
+.tab b{font-size:.8em;opacity:.8}
+.tab:hover{color:var(--ink)}
+.tab.active{background:color-mix(in srgb, var(--accent) 16%, transparent);color:var(--accent);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent)}
+.gear{background:var(--panel);border:1px solid var(--line);color:var(--muted);width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:1.05rem;transition:.35s}
+.gear:hover,.gear.open{color:var(--accent);border-color:var(--accent);transform:rotate(60deg)}
+
+.settings{display:none;flex-wrap:wrap;gap:1rem;align-items:center;background:var(--panel);border:1px solid var(--line);
+  border-radius:16px;padding:1rem 1.3rem;font-size:.85rem}
+.settings.open{display:flex}
+.settings label{display:flex;align-items:center;gap:.5rem;color:var(--muted)}
+.settings input[type=number]{width:64px;background:var(--bg0);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:.4em .5em;font-family:var(--font-num);text-align:center;direction:ltr}
+.settings input[type=number]:focus{outline:none;border-color:var(--accent)}
+
+.timer-wrap{position:relative;width:min(400px,82vw)}
+.timer-wrap::before{content:'';position:absolute;inset:-26px;border-radius:50%;
+  border:1.5px dashed color-mix(in srgb, var(--accent) 30%, transparent);animation:spin 70s linear infinite;transition:border-color .6s}
+body.running .timer-wrap{animation:breathe 4.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+.timer-wrap svg{width:100%;height:auto;display:block}
+.track{fill:none;stroke:rgba(255,255,255,.07);stroke-width:10}
+.ticks{fill:none;stroke:rgba(255,255,255,.13);stroke-width:2;stroke-dasharray:2 12.6}
+.prog{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;
+  filter:drop-shadow(0 0 14px var(--accent-glow));
+  transition:stroke .6s, stroke-dashoffset .3s linear}
+.timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem}
+.time{font-family:var(--font-num);font-weight:800;font-size:clamp(3.2rem,10vw,4.8rem);line-height:1;direction:ltr;font-variant-numeric:tabular-nums;text-shadow:0 6px 30px rgba(0,0,0,.4)}
+.phase-hint{color:var(--muted);font-size:.9rem}
+
+.controls{display:flex;align-items:center;gap:1rem}
+.ctl{width:50px;height:50px;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--ink);font-size:1.15rem;cursor:pointer;transition:.3s}
+.ctl:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-3px)}
+.ctl:active{transform:scale(.92)}
+.main-btn{font-family:var(--font-num);font-weight:700;font-size:1.2rem;background:var(--accent);color:#12251f;border:none;
+  padding:.75em 2.6em;border-radius:999px;cursor:pointer;box-shadow:0 12px 32px var(--accent-glow);
+  transition:transform .3s, background .6s, box-shadow .6s}
+.main-btn:hover{transform:translateY(-3px)}
+.main-btn:active{transform:scale(.96)}
+
+.cycle-row{display:flex;align-items:center;gap:.9rem}
+.dots{display:flex;gap:.55rem}
+.dots span{width:13px;height:13px;border-radius:50%;border:2px solid var(--accent);transition:.4s}
+.dots span.filled{background:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.cycle-label{font-size:.85rem;color:var(--muted)}
+.cycle-label b{font-family:var(--font-num);color:var(--accent)}
+.auto-row{display:flex;align-items:center;gap:.55rem;font-size:.85rem;color:var(--muted);cursor:pointer;user-select:none}
+.auto-row input{accent-color:var(--accent);width:16px;height:16px}
+.kbd-hint{font-size:.72rem;color:color-mix(in srgb, var(--muted) 70%, transparent)}
+
+/* العمود الجانبي */
+.side-col{display:flex;flex-direction:column;gap:1.1rem}
+.panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;
+  padding:1.2rem 1.4rem;box-shadow:0 14px 34px rgba(0,0,0,.28);position:relative;overflow:hidden;transition:border-color .4s}
+.panel::before{content:'';position:absolute;top:0;inset-inline:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.45;transition:.6s}
+.panel:hover{border-color:color-mix(in srgb, var(--accent) 35%, transparent)}
+.panel-kicker{font-family:var(--font-num);font-weight:600;font-size:.78rem;color:var(--accent);display:block;margin-bottom:.5rem}
+#currentTaskText{font-size:1.02rem;line-height:1.8;font-weight:500}
+#currentTaskText .pom{color:var(--accent);font-family:var(--font-num)}
+#currentTaskText a{color:var(--muted)}
+.mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem}
+.mini-stats .cell{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:.9rem .5rem;text-align:center;transition:.3s}
+.mini-stats .cell:hover{transform:translateY(-3px);border-color:var(--accent)}
+.mini-stats b{display:block;font-family:var(--font-num);font-weight:800;font-size:1.6rem;color:var(--accent);line-height:1.1}
+.mini-stats span{font-size:.7rem;color:var(--muted)}
+#flashText{min-height:3.2em;line-height:1.8;transition:opacity .35s}
+.cirillo{font-size:.75rem;color:color-mix(in srgb, var(--muted) 75%, transparent);line-height:1.9;text-align:center}
+
+.spark{position:absolute;left:50%;top:50%;width:9px;height:9px;border-radius:50%;background:var(--accent);pointer-events:none;z-index:5}
+
+/* ===== الأقسام العامة ===== */
+.section{max-width:1100px;margin-inline:auto;padding:clamp(3rem,8vh,5.5rem) clamp(1rem,5vw,2.5rem) 1rem}
+.sec-head{display:flex;gap:1.3rem;align-items:baseline;margin-bottom:2.2rem}
+.sec-num{font-family:var(--font-disp);font-weight:700;font-size:3rem;color:var(--accent);opacity:.55;line-height:1}
+.sec-head h2{font-family:var(--font-disp);font-weight:700;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.25}
+.sec-head p{color:var(--muted);font-size:.95rem;margin-top:.35rem}
+
+/* المهام */
+.task-box{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:20px;padding:1.6rem;box-shadow:0 14px 34px rgba(0,0,0,.25)}
+#taskForm{display:flex;gap:.7rem;margin-bottom:1.2rem}
+#taskInput{flex:1;background:var(--bg0);border:1px solid var(--line);border-radius:14px;color:var(--ink);padding:.85em 1.2em;font-family:inherit;font-size:.95rem;transition:border-color .3s}
+#taskInput:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)}
+#taskForm button{font-family:var(--font-num);font-weight:600;background:var(--accent);color:#12251f;border:none;border-radius:14px;padding:.7em 1.7em;cursor:pointer;transition:.3s}
+#taskForm button:hover{transform:translateY(-2px);box-shadow:0 8px 22px var(--accent-glow)}
+#taskList{list-style:none;display:flex;flex-direction:column;gap:.55rem}
+.task{display:flex;align-items:center;gap:.9rem;background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:14px;padding:.8rem 1rem;transition:.3s}
+.task:hover{border-color:color-mix(in srgb, var(--accent) 40%, transparent);transform:translateX(-4px)}
+.task.current{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 7%, transparent)}
+.chk{width:26px;height:26px;flex:none;border-radius:8px;border:2px solid var(--muted);background:transparent;color:transparent;cursor:pointer;font-size:.85rem;transition:.25s}
+.task.done .chk{background:var(--mint);border-color:var(--mint);color:#0c221a}
+.t-text{flex:1;font-size:.95rem}
+.task.done .t-text{text-decoration:line-through;color:var(--muted)}
+.t-pom{font-family:var(--font-num);font-size:.8rem;color:var(--accent)}
+.t-target,.t-del{background:transparent;border:none;cursor:pointer;font-size:1rem;color:var(--muted);transition:.25s;width:32px;height:32px;border-radius:8px}
+.t-target:hover{color:var(--accent);background:color-mix(in srgb, var(--accent) 12%, transparent)}
+.t-del:hover{color:var(--coral);background:rgba(255,139,113,.12)}
+.task.current .t-target{color:var(--accent)}
+.empty{color:var(--muted);text-align:center;padding:1.5rem 0;font-size:.9rem}
+
+/* الإحصاءات */
+.stats-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:1.3rem}
+.sum-panel .nums{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.4rem}
+.sum-panel .n b{display:block;font-family:var(--font-num);font-weight:800;font-size:2.1rem;color:var(--accent);line-height:1.15}
+.sum-panel .n span{font-size:.78rem;color:var(--muted)}
+.chart-panel h3{font-family:var(--font-num);font-weight:600;font-size:1rem;margin-bottom:1.1rem;color:var(--ink)}
+.bars{display:flex;gap:10px;height:190px;align-items:flex-end}
+.bcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:.45rem;height:100%}
+.bval{font-family:var(--font-num);font-size:.7rem;color:var(--accent);min-height:1em}
+.fill{width:100%;max-width:44px;height:3px;border-radius:8px 8px 3px 3px;
+  background:linear-gradient(180deg,var(--accent),color-mix(in srgb, var(--accent) 25%, transparent));
+  transition:height 1s cubic-bezier(.2,.7,.2,1);box-shadow:0 0 16px color-mix(in srgb, var(--accent) 25%, transparent)}
+.bday{font-size:.7rem;color:var(--muted)}
+.bcol.today .bday{color:var(--accent);font-weight:700}
+
+/* نصائح الخبراء */
+.tips-list{display:flex;flex-direction:column;gap:1.1rem}
+.tip{display:grid;grid-template-columns:92px 1fr;gap:1.4rem;padding:1.6rem 1.8rem;background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--line);border-inline-start:4px solid var(--c);border-radius:16px;
+  transition:transform .4s cubic-bezier(.2,.7,.2,1), box-shadow .4s, background .4s}
+.tip:hover{transform:translateY(-5px);box-shadow:0 18px 44px rgba(0,0,0,.35)}
+.tip-num{font-family:var(--font-disp);font-weight:700;font-size:2.7rem;color:var(--c);opacity:.85;line-height:1}
+.tip-top{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.55rem}
+.tip h3{font-family:var(--font-num);font-weight:700;font-size:1.28rem}
+.tip-tag{font-size:.7rem;padding:.3em .95em;border-radius:999px;color:var(--c);border:1px solid color-mix(in srgb, var(--c) 50%, transparent);background:color-mix(in srgb, var(--c) 9%, transparent)}
+.tip p{color:#cfdedd;font-size:.94rem;line-height:1.95}
+.tip-src{font-size:.78rem !important;color:var(--muted) !important;margin-top:.55rem}
+.c1{--c:var(--amber)} .c2{--c:var(--mint)} .c3{--c:var(--coral)} .c4{--c:var(--sky)}
+@media(min-width:900px){ .tip:nth-child(even){margin-inline-start:3.5rem} }
+
+/* اقتباس */
+.quote-strip{max-width:1100px;margin:3.5rem auto;padding:0 clamp(1rem,5vw,2.5rem)}
+.quote-strip blockquote{font-family:var(--font-disp);font-weight:700;font-size:clamp(1.35rem,2.8vw,2.1rem);line-height:1.9;
+  border-inline-start:5px solid var(--accent);padding:1rem 1.8rem;background:color-mix(in srgb, var(--accent) 6%, transparent);border-radius:0 18px 18px 0}
+.quote-strip cite{display:block;margin-top:.9rem;font-family:var(--font-body);font-style:normal;font-size:.85rem;color:var(--muted)}
+
+footer{border-top:1px solid var(--line);margin-top:4rem;padding:2rem;text-align:center;color:var(--muted);font-size:.85rem;line-height:2}
+footer b{color:var(--accent)}
+
+/* الظهور عند التمرير */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:960px){
+  .console{grid-template-columns:1fr;min-height:auto;padding-top:2rem}
+  .topbar nav{display:none}
+  .stats-grid{grid-template-columns:1fr}
+  .tip{grid-template-columns:1fr;gap:.6rem}
+  .tip-num{font-size:2rem}
+  .tip:nth-child(even){margin-inline-start:0}
+}
+</style>
+</head>
+<body data-mode="focus">
+
+<div class="bg-glow"></div>
+<div class="bg-dots"></div>
+<div class="orbit o1"></div>
+<div class="orbit o2"></div>
+
+<header class="topbar">
+  <a class="brand" href="#timer">
+    <svg viewBox="0 0 44 44" aria-hidden="true">
+      <circle cx="22" cy="26" r="15" fill="#ff6b57"/>
+      <circle cx="17" cy="22" r="4" fill="rgba(255,255,255,.25)"/>
+      <path d="M22 12c-2-4.5 1-8 1-8s3 3.5 1 8" stroke="#5fd6a4" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M22 12c-4-3-9-2-9-2s2.5 4.5 9 4 9-4 9-4-5-1-9 2z" fill="#5fd6a4"/>
+    </svg>
+    <span class="brand-name">ركّز <small>مذاكرتك بإيقاع البومودورو</small></span>
+  </a>
+  <nav>
+    <a href="#timer">المؤقّت</a>
+    <a href="#tasks">مهامي</a>
+    <a href="#stats">إحصاءاتي</a>
+    <a href="#tips">نصائح الخبراء</a>
+  </nav>
+  <div class="top-actions">
+    <span class="streak-chip" title="أيام المذاكرة المتتالية">🔥 <b id="streakNum">٠</b></span>
+    <button class="icon-btn" id="muteBtn" title="تشغيل/كتم الصوت">🔊</button>
+  </div>
+</header>
+
+<main>
+  <!-- ===== منصّة المؤقّت ===== -->
+  <section id="timer" class="console">
+    <div class="timer-col">
+      <div class="status-line"><span class="pulse-dot"></span><span id="modeLabel">وقت التركيز</span></div>
+
+      <div class="tabs-row">
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-mode="focus">تركيز <b>٢٥</b></button>
+          <button class="tab" data-mode="short">راحة قصيرة <b>٥</b></button>
+          <button class="tab" data-mode="long">راحة طويلة <b>١٥</b></button>
+        </div>
+        <button class="gear" id="gearBtn" title="الإعدادات">⚙</button>
+      </div>
+
+      <div class="settings" id="settingsPanel">
+        <label>تركيز (دقيقة) <input type="number" id="lenFocus" min="1" max="180"></label>
+        <label>راحة قصيرة <input type="number" id="lenShort" min="1" max="60"></label>
+        <label>راحة طويلة <input type="number" id="lenLong" min="1" max="90"></label>
+      </div>
+
+      <div class="timer-wrap" id="timerWrap">
+        <svg viewBox="0 0 360 360">
+          <circle class="track" cx="180" cy="180" r="160"/>
+          <circle class="ticks" cx="180" cy="180" r="142"/>
+          <circle class="prog" id="prog" cx="180" cy="180" r="160"
+                  stroke-dasharray="1005.31" stroke-dashoffset="0"
+                  transform="rotate(-90 180 180)"/>
+        </svg>
+        <div class="timer-center">
+          <div class="time" id="timeText">25:00</div>
+          <div class="phase-hint" id="phaseHint">جاهز للانطلاق</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="ctl" id="resetBtn" title="إعادة (R)">↺</button>
+        <button class="main-btn" id="mainBtn">ابدأ التركيز</button>
+        <button class="ctl" id="skipBtn" title="تخطٍّ إلى التالي (S)">⏭</button>
+      </div>
+
+      <div class="cycle-row">
+        <div class="dots" id="dots"><span></span><span></span><span></span><span></span></div>
+        <span class="cycle-label">الجلسة <b id="cycleNum">١</b> من ٤ قبل الراحة الطويلة</span>
+      </div>
+
+      <label class="auto-row"><input type="checkbox" id="autoNext"><span>بدء الجلسة التالية تلقائيًا</span></label>
+      <p class="kbd-hint">مسافة: تشغيل/إيقاف · R: إعادة · S: تخطٍّ</p>
+    </div>
+
+    <aside class="side-col">
+      <div class="panel">
+        <span class="panel-kicker">🎯 مهمة الجلسة</span>
+        <p id="currentTaskText"></p>
+      </div>
+      <div class="mini-stats">
+        <div class="cell"><b id="msSessions">٠</b><span>جلسات اليوم</span></div>
+        <div class="cell"><b id="msMinutes">٠</b><span>دقيقة تركيز</span></div>
+        <div class="cell"><b id="msStreak">٠</b><span>أيام متتالية</span></div>
+      </div>
+      <div class="panel">
+        <span class="panel-kicker">✨ ومضة الآن</span>
+        <p id="flashText"></p>
+      </div>
+      <p class="cirillo">منهج بومودورو: ٢٥ دقيقة تركيز تعقبها ٥ دقائق راحة، وبعد كل ٤ جلسات راحة أطول — ابتكار الإيطالي فرانشيسكو سيريلو نهاية الثمانينيات، وسُمّي نسبةً إلى مؤقّت المطبخ على شكل طماطم (بومودورو بالإيطالية 🍅).</p>
+    </aside>
+  </section>
+
+  <!-- ===== المهام ===== -->
+  <section id="tasks" class="section">
+    <div class="sec-head reveal">
+      <span class="sec-num">٠١</span>
+      <div><h2>مهام اليوم</h2><p>نية واضحة قبل كل جلسة ترفع التزامك بشكل ملموس — اكتب مهمتك واجعلها هدف الجولة.</p></div>
+    </div>
+    <div class="task-box reveal">
+      <form id="taskForm">
+        <input id="taskInput" placeholder="ما الذي ستذاكره في الجلسة القادمة؟" autocomplete="off">
+        <button type="submit">أضف +</button>
+      </form>
+      <ul id="taskList"></ul>
+      <p class="empty" id="taskEmpty">لا مهام بعد — أضف أول مهمة وابدأ أول طماطم 🍅</p>
+    </div>
+  </section>
+
+  <!-- ===== الإحصاءات ===== -->
+  <section id="stats" class="section">
+    <div class="sec-head reveal">
+      <span class="sec-num">٠٢</span>
+      <div><h2>حصاد تركيزك</h2><p>ما يُقاس يتحسّن — راقب تقدّمك يومًا بيوم.</p></div>
+    </div>
+    <div class="stats-grid">
+      <div class="panel sum-panel reveal">
+        <span class="panel-kicker">📊 الأرقام</span>
+        <div class="nums">
+          <div class="n"><b id="sumTodayS">٠</b><span>جلسات اليوم</span></div>
+          <div class="n"><b id="sumTodayM">٠</b><span>دقيقة اليوم</span></div>
+          <div class="n"><b id="sumWeek">٠</b><span>دقيقة هذا الأسبوع</span></div>
+          <div class="n"><b id="sumAll">٠</b><span>إجمالي الجلسات</span></div>
+        </div>
+      </div>
+      <div class="panel chart-panel reveal" id="chartPanel">
+        <h3>دقائق التركيز — آخر ٧ أيام</h3>
+        <div class="bars" id="bars"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== نصائح الخبراء ===== -->
+  <section id="tips" class="section">
+    <div class="sec-head reveal">
+      <span class="sec-num">٠٣</span>
+      <div><h2>نصائح الخبراء للدراسة</h2><p>خلاصة قرنٍ من أبحاث علوم التعلّم والذاكرة — عشر تقنيات ثبُتت فعاليتها علميًا.</p></div>
+    </div>
+    <div class="tips-list">
+
+      <article class="tip c1 reveal">
+        <div class="tip-num">٠١</div>
+        <div><div class="tip-top"><h3>الاسترجاع النشط</h3><span class="tip-tag">ذاكرة</span></div>
+          <p>أغلق الدفتر واستحضر ما فهمته من ذاكرتك، أو اختبر نفسك بأسئلة بدل إعادة القراءة. كل عملية استرجاع ناجحة تقوّي المسار العصبي للمعلومة أضعاف ما تفعله المراجعة السلبية.</p>
+          <p class="tip-src">السند: دراسات رواديغر وكاربيكي (٢٠٠٦) — التفوّق على إعادة القراءة بفارق كبير.</p></div>
+      </article>
+
+      <article class="tip c2 reveal">
+        <div class="tip-num">٠٢</div>
+        <div><div class="tip-top"><h3>التكرار المتباعد</h3><span class="tip-tag">ذاكرة</span></div>
+          <p>راجع المادة على فترات متزايدة: بعد يوم، ثم ثلاثة أيام، ثم أسبوع. المراجعة في «لحظة اقتراب النسيان» هي الأقوى أثرًا في تحويل المعلومة إلى ذاكرة طويلة الأمد.</p>
+          <p class="tip-src">السند: منحنى النسيان لإبنغهاوس، وتقييم دانلوسكي وزملائه (٢٠١٣) الذي منحه أعلى درجة فعالية.</p></div>
+      </article>
+
+      <article class="tip c3 reveal">
+        <div class="tip-num">٠٣</div>
+        <div><div class="tip-top"><h3>تقنية فاينمان</h3><span class="tip-tag">فهم عميق</span></div>
+          <p>اشرح الدرس بصوتك وكأنك تعلّمه طفلًا في العاشرة. حيث تتلعثم أو تضطر لاستخدام مصطلحات معقدة، هناك بالضبط فجوتك — عُد إليها وسُدّها، ثم بسّط من جديد.</p>
+          <p class="tip-src">السند: منهج الفيزيائي الحائز على نوبل ريتشارد فاينمان في التعلّم.</p></div>
+      </article>
+
+      <article class="tip c4 reveal">
+        <div class="tip-num">٠٤</div>
+        <div><div class="tip-top"><h3>التوزيع بدل التكديس</h3><span class="tip-tag">تخطيط</span></div>
+          <p>ساعة واحدة يوميًا على مدى أسبوع ترسّخ أكثر من سبع ساعات متواصلة ليلة الامتحان. الدماغ يحتاج فواصل ونومًا بين الجلسات ليبني الروابط ويثبّتها.</p>
+          <p class="tip-src">السند: «أثر التباعد» — من أكثر النتائج ثباتًا في علم النفس التجريبي.</p></div>
+      </article>
+
+      <article class="tip c1 reveal">
+        <div class="tip-num">٠٥</div>
+        <div><div class="tip-top"><h3>احمِ تركيزك من الهاتف</h3><span class="tip-tag">تركيز</span></div>
+          <p>ضع الهاتف في غرفة أخرى — لا على الصامت بجوارك. مجرد وجوده في مجال بصرك يستنزف جزءًا من سعتك الذهنية، والمقاطعة الواحدة تكلّفك قرابة ٢٣ دقيقة للعودة إلى عمق التركيز.</p>
+          <p class="tip-src">السند: أبحاث غلوريا مارك — جامعة كاليفورنيا، إيرفين.</p></div>
+      </article>
+
+      <article class="tip c2 reveal">
+        <div class="tip-num">٠٦</div>
+        <div><div class="tip-top"><h3>نَمْ لتتذكّر</h3><span class="tip-tag">صحة</span></div>
+          <p>النوم (٧–٩ ساعات) هو وقت «نقل الملفات»: الدماغ يعيد تشغيل ما تعلمته ويثبّته في الذاكرة طويلة المدى. السهر ليلة الامتحان يهدم جزءًا كبيرًا مما بنيته نهارك.</p>
+          <p class="tip-src">السند: أبحاث النوم وتوطيد الذاكرة (Walker, 2017).</p></div>
+      </article>
+
+      <article class="tip c3 reveal">
+        <div class="tip-num">٠٧</div>
+        <div><div class="tip-top"><h3>تحرّك بين الجلسات</h3><span class="tip-tag">صحة</span></div>
+          <p>اجعل استراحة البومودورو حركةً حقيقية: ١٠ دقائق مشي أو تمدد ترفع تدفق الدم إلى الدماغ وتحسّن الانتباه والمزاج فورًا، وتُعيدك للجلسة التالية أصفى ذهنًا.</p>
+          <p class="tip-src">السند: دراسات النشاط البدني قصير الأثر على الوظائف الإدراكية.</p></div>
+      </article>
+
+      <article class="tip c4 reveal">
+        <div class="tip-num">٠٨</div>
+        <div><div class="tip-top"><h3>قاعدة الدقيقتين</h3><span class="tip-tag">تغلب على التسويف</span></div>
+          <p>لا تستطيع البدء؟ التزم بدقيقتين فقط — افتح الكتاب واقرأ سطرًا واحدًا. البدء هو أصعب جزء في المعادلة، والزخم النفسي سيتكفل بالباقي.</p>
+          <p class="tip-src">السند: أبحاث بناء العادات وتقليل حاجز البدء.</p></div>
+      </article>
+
+      <article class="tip c1 reveal">
+        <div class="tip-num">٠٩</div>
+        <div><div class="tip-top"><h3>بدّل بين المواد</h3><span class="tip-tag">فهم عميق</span></div>
+          <p>التبديل بين مادتين أو نوعين من المسائل خلال اليوم (المدخلات المتداخلة) أصعب أثناء التعلّم لكنه أعمق أثرًا: يمنع وهم الإتقان ويعلّم دماغك التمييز بين أنماط المشكلات.</p>
+          <p class="tip-src">السند: أبحاث الـ Interleaving — روهرير وتايلور (٢٠٠٧).</p></div>
+      </article>
+
+      <article class="tip c2 reveal">
+        <div class="tip-num">١٠</div>
+        <div><div class="tip-top"><h3>كافئ نفسك بعد كل جلسة</h3><span class="tip-tag">دافعية</span></div>
+          <p>مكافأة صغيرة بعد إنجاز الجلسة — كوب شاي، أغنية، خمس دقائق من شيء تحبه — تربط المذاكرة بشعور إيجابي في دماغك وتبني عادة تدوم سنوات.</p>
+          <p class="tip-src">السند: حلقة العادة (إشارة ← فعل ← مكافأة) — أبحاث علم الأعصاب السلوكي.</p></div>
+      </article>
+
+    </div>
+  </section>
+
+  <div class="quote-strip reveal">
+    <blockquote>«بعد قرنٍ من الأبحاث، التقنيتان الأعلى فعالية في التعلّم هما: الاختبار الذاتي، وتوزيع المذاكرة عبر الزمن.»
+      <cite>— دانلوسكي وزملاؤه، مراجعة علمية شملت عشر تقنيات تعلّم (٢٠١٣)</cite>
+    </blockquote>
+  </div>
+</main>
+
+<footer>
+  صُنع بحبٍّ لكل من يذاكر 🍅 — <b>ركّز</b> · تعمل بياناتك محليًا في متصفحك فقط، ولا تُرسل إلى أي خادم.
+</footer>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const pad=n=>String(n).padStart(2,'0');
+const arDig=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+const LS={
+  get(k,f){try{const v=localStorage.getItem('rakkez.'+k);return v?JSON.parse(v):f}catch(e){return f}},
+  set(k,v){try{localStorage.setItem('rakkez.'+k,JSON.stringify(v))}catch(e){}}
+};
+const MODES={
+  focus:{label:'وقت التركيز',short:'تركيز',hint:'أغلق كل شيء… وانطلق'},
+  short:{label:'استراحة قصيرة',short:'راحة قصيرة',hint:'قِف، تمدّد، اشرب ماءً'},
+  long:{label:'استراحة طويلة',short:'راحة طويلة',hint:'كافئ نفسك، أنت تستحق'}
+};
+
+let settings=Object.assign({focus:25,short:5,long:15,auto:false,muted:false},LS.get('settings',{}));
+let log=LS.get('log',{});
+let tasks=LS.get('tasks',[]);
+let currentTask=LS.get('current',null);
+let cycle=LS.get('cycle',0);
+
+let mode='focus',total=settings.focus*60,remaining=total,running=false,iv=null,endAt=0,titleIv=null;
+
+const C=2*Math.PI*160;
+const prog=$('#prog'),timeText=$('#timeText'),phaseHint=$('#phaseHint'),mainBtn=$('#mainBtn'),modeLabel=$('#modeLabel');
+
+const todayKey=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const dayKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+
+/* ---------- العرض ---------- */
+function fmt(sec){return pad(Math.floor(sec/60))+':'+pad(sec%60);}
+function render(){
+  timeText.textContent=fmt(remaining);
+  prog.style.strokeDashoffset=C*(1-remaining/total);
+  phaseHint.textContent=running?MODES[mode].hint:(remaining===total?'جاهز للانطلاق':'متوقف مؤقتًا');
+  if(!titleIv)document.title=fmt(remaining)+' · '+MODES[mode].short+' — ركّز';
+}
+function renderTabs(){
+  $$('#tabs .tab').forEach(t=>{
+    const m=t.dataset.mode;
+    t.innerHTML=(MODES[m].short==='تركيز'?'تركيز':MODES[m].short)+' <b>'+arDig(settings[m])+'</b>';
+    t.classList.toggle('active',m===mode);
+  });
+}
+function renderDots(){
+  const filled=mode==='long'?4:cycle%4;
+  $$('#dots span').forEach((d,i)=>d.classList.toggle('filled',i<filled));
+  $('#cycleNum').textContent=arDig(mode==='long'?4:(cycle%4)+1);
+}
+function setMode(m){
+  pause(); mode=m; document.body.dataset.mode=m;
+  total=settings[m]*60; remaining=total;
+  modeLabel.textContent=MODES[m].label;
+  mainBtn.textContent=mode==='focus'?'ابدأ التركيز':'ابدأ الاستراحة';
+  renderTabs(); renderDots(); render();
+}
+
+/* ---------- التشغيل ---------- */
+let actx=null;
+function ensureAudio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();}catch(e){}}
+function chime(){
+  if(settings.muted||!actx)return;
+  const t0=actx.currentTime;
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>{
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0,t0+i*.18);
+    g.gain.linearRampToValueAtTime(.2,t0+i*.18+.04);
+    g.gain.exponentialRampToValueAtTime(.001,t0+i*.18+1);
+    o.connect(g).connect(actx.destination);o.start(t0+i*.18);o.stop(t0+i*.18+1.1);
+  });
+}
+function start(){
+  if(remaining<=0)remaining=total;
+  ensureAudio(); running=true; endAt=Date.now()+remaining*1000;
+  iv=setInterval(tick,200);
+  document.body.classList.add('running');
+  mainBtn.textContent='إيقاف مؤقت'; render();
+}
+function pause(){
+  running=false; clearInterval(iv);
+  document.body.classList.remove('running');
+  mainBtn.textContent=mode==='focus'?'ابدأ التركيز':'ابدأ الاستراحة';
+}
+function toggle(){running?pause():start();}
+function reset(){pause();remaining=total;render();}
+function tick(){
+  remaining=Math.max(0,Math.round((endAt-Date.now())/1000));
+  render();
+  if(remaining<=0)complete();
+}
+function skip(){pause();advance(false);}
+function advance(logged){
+  if(mode==='focus'){
+    if(logged)recordFocus();
+    setMode(cycle%4===0?'long':'short');
+  }else setMode('focus');
+}
+function recordFocus(){
+  const k=todayKey(),r=log[k]||{m:0,s:0};
+  r.m+=settings.focus;r.s++;log[k]=r;LS.set('log',log);
+  cycle++;LS.set('cycle',cycle);
+  if(currentTask){const t=tasks.find(x=>x.id===currentTask);if(t){t.pom=(t.pom||0)+1;LS.set('tasks',tasks);}}
+}
+function complete(){
+  pause(); chime(); burst(); flashTitle();
+  advance(mode==='focus');
+  renderStats(); renderTasks(); renderCurrent();
+  if(settings.auto)setTimeout(start,1500);
+}
+function burst(){
+  const wrap=$('#timerWrap'),acc=getComputedStyle(document.body).getPropertyValue('--accent').trim();
+  for(let i=0;i<26;i++){
+    const s=document.createElement('span');s.className='spark';s.style.background=acc;
+    wrap.appendChild(s);
+    const a=Math.random()*Math.PI*2,d=90+Math.random()*130;
+    s.animate(
+      [{transform:'translate(-50%,-50%) scale(1)',opacity:1},
+       {transform:`translate(${Math.cos(a)*d-4}px,${Math.sin(a)*d-4}px) scale(.15)`,opacity:0}],
+      {duration:800+Math.random()*600,easing:'cubic-bezier(.2,.7,.3,1)'}
+    ).onfinish=()=>s.remove();
+  }
+}
+function flashTitle(){
+  clearInterval(titleIv);let n=0;
+  titleIv=setInterval(()=>{
+    document.title=n%2?'⏰ حان وقت التبديل!':'🍅 انتهى الوقت!';
+    if(++n>7){clearInterval(titleIv);titleIv=null;render();}
+  },800);
+}
+
+/* ---------- الأحداث ---------- */
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)setMode(b.dataset.mode);});
+mainBtn.addEventListener('click',toggle);
+$('#resetBtn').addEventListener('click',reset);
+$('#skipBtn').addEventListener('click',skip);
+$('#gearBtn').addEventListener('click',function(){this.classList.toggle('open');$('#settingsPanel').classList.toggle('open');});
+$('#autoNext').checked=settings.auto;
+$('#autoNext').addEventListener('change',e=>{settings.auto=e.target.checked;LS.set('settings',settings);});
+
+[['lenFocus','focus'],['lenShort','short'],['lenLong','long']].forEach(([id,m])=>{
+  const inp=$('#'+id);inp.value=settings[m];
+  inp.addEventListener('change',()=>{
+    const v=Math.min(180,Math.max(1,parseInt(inp.value)||settings[m]));
+    inp.value=v;settings[m]=v;LS.set('settings',settings);renderTabs();
+    if(m===mode&&!running){total=v*60;remaining=total;render();}
+  });
+});
+
+const muteBtn=$('#muteBtn');
+function renderMute(){muteBtn.textContent=settings.muted?'🔇':'🔊';}
+muteBtn.addEventListener('click',()=>{settings.muted=!settings.muted;LS.set('settings',settings);renderMute();});
+renderMute();
+
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,textarea'))return;
+  if(e.code==='Space'){e.preventDefault();toggle();}
+  if(['r','R','ر'].includes(e.key))reset();
+  if(['s','S','س'].includes(e.key))skip();
+});
+
+/* ---------- المهام ---------- */
+$('#taskForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const inp=$('#taskInput'),txt=inp.value.trim();
+  if(!txt)return;
+  tasks.unshift({id:Date.now(),text:txt,done:false,pom:0});
+  LS.set('tasks',tasks);inp.value='';renderTasks();
+});
+$('#taskList').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-a]');if(!btn)return;
+  const id=+btn.closest('.task').dataset.id,t=tasks.find(x=>x.id===id);
+  if(btn.dataset.a==='toggle'){t.done=!t.done;if(t.done&&currentTask===id)currentTask=null;}
+  if(btn.dataset.a==='del'){tasks=tasks.filter(x=>x.id!==id);if(currentTask===id)currentTask=null;}
+  if(btn.dataset.a==='current'){currentTask=currentTask===id?null:id;}
+  LS.set('tasks',tasks);LS.set('current',currentTask);
+  renderTasks();renderCurrent();
+});
+function renderTasks(){
+  const list=$('#taskList');
+  const sorted=[...tasks.filter(t=>!t.done),...tasks.filter(t=>t.done)];
+  list.innerHTML=sorted.map(t=>`
+    <li class="task ${t.done?'done':''} ${currentTask===t.id?'current':''}" data-id="${t.id}">
+      <button class="chk" data-a="toggle" title="إنجاز">✓</button>
+      <span class="t-text">${t.text.replace(/</g,'&lt;')}</span>
+      ${t.pom?`<span class="t-pom">🍅×${arDig(t.pom)}</span>`:''}
+      <button class="t-target" data-a="current" title="اجعلها مهمة الجلسة">◎</button>
+      <button class="t-del" data-a="del" title="حذف">✕</button>
+    </li>`).join('');
+  $('#taskEmpty').style.display=tasks.length?'none':'block';
+}
+function renderCurrent(){
+  const el=$('#currentTaskText'),t=tasks.find(x=>x.id===currentTask&&!x.done);
+  if(t){
+    el.innerHTML='«'+t.text.replace(/</g,'&lt;')+'»'+(t.pom?` <span class="pom">🍅 × ${arDig(t.pom)}</span>`:'');
+  }else{
+    el.innerHTML='لا مهمة محددة بعد — <a href="#tasks">أضف واحدة واجعلها هدفك ⤵</a>';
+  }
+}
+
+/* ---------- الإحصاءات ---------- */
+function calcStreak(){
+  let s=0,d=new Date();
+  if(!log[dayKey(d)]?.s)d.setDate(d.getDate()-1);
+  while(log[dayKey(d)]?.s){s++;d.setDate(d.getDate()-1);}
+  return s;
+}
+function renderStats(){
+  const today=log[todayKey()]||{m:0,s:0},streak=calcStreak();
+  $('#msSessions').textContent=arDig(today.s);
+  $('#msMinutes').textContent=arDig(today.m);
+  $('#msStreak').textContent=arDig(streak);
+  $('#streakNum').textContent=arDig(streak);
+  $('#sumTodayS').textContent=arDig(today.s);
+  $('#sumTodayM').textContent=arDig(today.m);
+  let weekM=0,allS=0;
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);weekM+=(log[dayKey(d)]?.m||0);}
+  for(const k in log)allS+=log[k].s||0;
+  $('#sumWeek').textContent=arDig(weekM);
+  $('#sumAll').textContent=arDig(allS);
+  const bars=$('#bars');bars.innerHTML='';
+  let max=30;
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
+  days.forEach(d=>{const m=log[dayKey(d)]?.m||0;if(m>max)max=m;});
+  days.forEach(d=>{
+    const m=log[dayKey(d)]?.m||0,isToday=dayKey(d)===todayKey();
+    const col=document.createElement('div');
+    col.className='bcol'+(isToday?' today':'');
+    col.innerHTML=`<span class="bval">${m?arDig(m):''}</span>
+      <div class="fill" data-h="${m===0?3:Math.max(7,Math.round(m/max*100))}"></div>
+      <span class="bday">${d.toLocaleDateString('ar',{weekday:'short'})}</span>`;
+    bars.appendChild(col);
+  });
+  requestAnimationFrame(()=>requestAnimationFrame(growBars));
+}
+function growBars(){$$('#bars .fill').forEach(f=>f.style.height=f.dataset.h+'%');}
+
+/* ---------- الومضات ---------- */
+const flashes=[
+  '💧 اشرب كوب ماء الآن — جفاف بسيط يُنقص التركيز.',
+  '📵 أبعِد الهاتف عن مدى ذراعك… أو إلى غرفة أخرى.',
+  '🌬️ خذ ثلاثة أنفاس عميقة: شهيق ٤، حبس ٧، زفير ٨.',
+  '✍️ اكتب هدف هذه الجلسة في جملة واحدة واضحة.',
+  '🧍 قِف ومدّد ظهرك ورقبتك عشرين ثانية.',
+  '👀 قاعدة ٢٠-٢٠-٢٠: انظر لشيء بعيد ٢٠ ثانية.',
+  '🎧 إن احتجت عزلاً: موسيقى هادئة بلا كلمات.',
+  '🍅 اسأل نفسك: ما أصعب جزء في مهمتي؟ ابدأ به.'
+];
+let fi=0;const flashEl=$('#flashText');
+flashEl.textContent=flashes[0];
+setInterval(()=>{
+  flashEl.style.opacity=0;
+  setTimeout(()=>{fi=(fi+1)%flashes.length;flashEl.textContent=flashes[fi];flashEl.style.opacity=1;},350);
+},9000);
+
+/* ---------- الظهور عند التمرير ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}
+}),{threshold:.12});
+$$('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%5)*70+'ms';io.observe(el);});
+
+/* ---------- التهيئة ---------- */
+setMode('focus');
+renderTabs();renderTasks();renderCurrent();renderStats();render();
+</script>
+</body>
+</html>
